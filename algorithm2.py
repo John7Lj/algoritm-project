@@ -1,122 +1,65 @@
 import math
-import time
-import random
 
 def distance(p1, p2):
-    """Calculate Euclidean distance between two points"""
     return math.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
 
-def closest_pair_strip(strip, d):
-    """
-    Find the closest pair in a strip of points
-    """
+def brute_force(points):
+    min_dist = float('inf')
+    for i in range(len(points)):
+        for j in range(i + 1, len(points)):
+            min_dist = min(min_dist, distance(points[i], points[j]))
+    return min_dist
+
+def strip_closest(strip, d):
     min_dist = d
-    closest_pair = None
-    strip.sort(key=lambda point: point[1])  # Sort by y-coordinate
-    
     for i in range(len(strip)):
-        j = i + 1
-        while j < len(strip) and (strip[j][1] - strip[i][1]) < min_dist:
-            dist = distance(strip[i], strip[j])
-            if dist < min_dist:
-                min_dist = dist
-                closest_pair = (strip[i], strip[j])
-            j += 1
-    
-    return closest_pair, min_dist
+        for j in range(i + 1, min(i + 7, len(strip))):
+            min_dist = min(min_dist, distance(strip[i], strip[j]))
+    return min_dist
 
-def closest_pair_recursive(px, py):
-    """
-    Recursive function using divide and conquer
-    px: points sorted by x-coordinate
-    py: points sorted by y-coordinate
-    """
-    n = len(px)
-    
-    # Base case: use brute force for small inputs
+def closest_pair_rec(points_x, points_y):
+    n = len(points_x)
     if n <= 3:
-        min_dist = float('inf')
-        closest_pair = None
-        for i in range(n):
-            for j in range(i + 1, n):
-                dist = distance(px[i], px[j])
-                if dist < min_dist:
-                    min_dist = dist
-                    closest_pair = (px[i], px[j])
-        return closest_pair, min_dist
+        return brute_force(points_x)
     
-    # Divide
     mid = n // 2
-    midpoint = px[mid]
+    mid_point = points_x[mid]
+    left_x = points_x[:mid]
+    right_x = points_x[mid:]
     
-    pyl = [p for p in py if p[0] <= midpoint[0]]
-    pyr = [p for p in py if p[0] > midpoint[0]]
+    left_y = []
+    right_y = []
+    for p in points_y:
+        if p[0] <= mid_point[0]:
+            left_y.append(p)
+        else:
+            right_y.append(p)
     
-    # Conquer
-    left_pair, left_dist = closest_pair_recursive(px[:mid], pyl)
-    right_pair, right_dist = closest_pair_recursive(px[mid:], pyr)
+    dl = closest_pair_rec(left_x, left_y)
+    dr = closest_pair_rec(right_x, right_y)
+    d = min(dl, dr)
     
-    # Find minimum of two sides
-    if left_dist < right_dist:
-        d = left_dist
-        min_pair = left_pair
-    else:
-        d = right_dist
-        min_pair = right_pair
-    
-    # Build strip array
-    strip = [p for p in py if abs(p[0] - midpoint[0]) < d]
-    
-    # Find closest points in strip
-    strip_pair, strip_dist = closest_pair_strip(strip, d)
-    
-    # Return the minimum
-    if strip_dist < d:
-        return strip_pair, strip_dist
-    return min_pair, d
+    strip = [p for p in points_y if abs(p[0] - mid_point[0]) < d]
+    return min(d, strip_closest(strip, d))
 
-def closest_pair_optimized(points):
-    """
-    Optimized divide and conquer approach
-    Time Complexity: O(n log n)
-    Space Complexity: O(n)
-    """
-    if len(points) < 2:
-        return None, float('inf')
-    
-    px = sorted(points, key=lambda p: p[0])  # Sort by x
-    py = sorted(points, key=lambda p: p[1])  # Sort by y
-    
-    return closest_pair_recursive(px, py)
+def closest_pair(points):
+    points_x = sorted(points, key=lambda x: x[0])
+    points_y = sorted(points, key=lambda x: x[1])
+    return closest_pair_rec(points_x, points_y)
 
-def generate_random_points(n, max_coord=1000):
-    """Generate n random points with coordinates in range [0, max_coord]"""
-    return [(random.uniform(0, max_coord), random.uniform(0, max_coord)) for _ in range(n)]
+# Sample data
+points = [
+    (2, 3),
+    (12, 30),
+    (40, 50),
+    (5, 1),
+    (12, 10),
+    (3, 4),
+    (20, 25),
+    (15, 18)
+]
 
-def run_test(n):
-    """Run a single test with n points and measure execution time"""
-    points = generate_random_points(n)
-    
-    start_time = time.time()
-    pair, dist = closest_pair_optimized(points)
-    end_time = time.time()
-    
-    execution_time = (end_time - start_time) * 1000  # Convert to milliseconds
-    
-    return execution_time, pair, dist
-
-if __name__ == "__main__":
-    # Test with different input sizes
-    test_sizes = [10, 50, 100, 200, 500, 1000, 2000, 5000]
-    
-    print("="*60)
-    print("Optimized Closest Pair Algorithm - Performance Testing")
-    print("="*60)
-    
-    for size in test_sizes:
-        exec_time, pair, dist = run_test(size)
-        print(f"\nInput size: {size} points")
-        print(f"Execution time: {exec_time:.4f} ms")
-        print(f"Minimum distance: {dist:.4f}")
-        if pair:
-            print(f"Closest pair: {pair[0]} and {pair[1]}")
+# Test the algorithm
+min_distance = closest_pair(points)
+print(f"The smallest distance between any two points is: {min_distance:.2f}")
+print(f"Points: {points}")
